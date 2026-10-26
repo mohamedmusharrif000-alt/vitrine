@@ -26,6 +26,8 @@
 #import "Core/SGCore.h"
 #import "Redesigned/Kit/SGRKit.h"
 #import "Shared/Player/SpeedPitch.h"
+#import "Shared/AlbumQueue/AlbumQueue.h"
+#import "Shared/LyricsTranslation/BatchTranslation.h"
 #import "ContextMenu.h"
 
 // After a pick of Spotify's, how long its sheet has to start going, or to push a page of its own (which shows
@@ -678,12 +680,20 @@ static void raiseHost(UIWindow *window) {
     }];
 }
 
+- (UIMenuElement *)elementFor:(SGRSheetRow *)row {
+    if ([row.control isKindOfClass:UIButton.class]) {
+        UIButton *button = (UIButton *)row.control;
+        if (button.menu && button.showsMenuAsPrimaryAction) return button.menu;
+    }
+    return [self actionFor:row];
+}
+
 - (NSArray<UIMenuElement *> *)rowElements {
     NSMutableArray<UIMenuElement *> *groups = [NSMutableArray array];
     for (NSArray<SGRSheetRow *> *group in _groups) {
         NSMutableArray<UIMenuElement *> *actions = [NSMutableArray array];
         for (SGRSheetRow *row in group) {
-            if (!row.quick) [actions addObject:[self actionFor:row]];
+            if (!row.quick) [actions addObject:[self elementFor:row]];
         }
         if (actions.count) [groups addObject:inlineGroup(actions)];
     }
@@ -845,6 +855,8 @@ static NSString *storedKey(NSString *kind) {
     if (_groups) return YES;
     UITableView *table = tableIn(self.sheet.viewIfLoaded, 0);
     if (!table || rowCount(table) == 0) return NO;
+    SGAlbumQueueInstall(self.sheet);
+    SGBatchTranslationInstall(self.sheet);
     CFTimeInterval started = CACurrentMediaTime();
     [table layoutIfNeeded];
     _table = table;

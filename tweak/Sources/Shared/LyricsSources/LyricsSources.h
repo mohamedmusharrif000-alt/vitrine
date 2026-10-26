@@ -129,6 +129,11 @@ void SGLyricsGetJSON(NSURL *url, NSDictionary<NSString *, NSString *> *headers, 
 // body says why. response is nil when the request never got an answer.
 void SGLyricsGetJSONReply(NSURL *url, NSDictionary<NSString *, NSString *> *headers, void (^done)(id root, NSHTTPURLResponse *response));
 void SGLyricsGetText(NSURL *url, void (^done)(NSString *text));
+// The same two with a `parse` that reads the reply on the session's queue, so a TTML or an embed page is
+// read off the main queue; `done` gets what it returns, on the main queue. `parse` must touch no state of
+// the main queue's.
+void SGLyricsGetJSONThen(NSURL *url, NSDictionary<NSString *, NSString *> *headers, id (^parse)(id root), void (^done)(id parsed));
+void SGLyricsGetTextThen(NSURL *url, id (^parse)(NSString *text), void (^done)(id parsed));
 // For the one source that is asked a question rather than sent to an address. body is anything
 // NSJSONSerialization writes; nothing is sent at all when it is not.
 void SGLyricsPostJSON(NSURL *url, NSDictionary<NSString *, NSString *> *headers, id body, void (^done)(id root));
@@ -243,6 +248,12 @@ NSString *SGLyricsChosenSource(NSString *trackID);
 // Every source in the order is asked for the track at once, the answers kept for the last few tracks, and
 // `done` gets the ones with lines, by key, when all have answered or `wait` has passed.
 void SGLyricsOffers(NSString *trackID, NSTimeInterval wait, void (^done)(NSDictionary<NSString *, SGLyricsResult *> *offers));
+// The same asks started, with no answer awaited.
+void SGLyricsAskOffers(NSString *trackID);
+// What they have answered, asking nothing: the sources with lines so far, and in `asking` the keys still out.
+NSDictionary<NSString *, SGLyricsResult *> *SGLyricsOffersSoFar(NSString *trackID, NSArray<NSString *> **asking);
+// Posted on the main queue (object the track's id) each time one of those sources answers.
+extern NSNotificationName const SGLyricsOffersDidChangeNotification;
 // Makes the offer of `key` the track's lyrics now, everywhere they show, and posts
 // SGLyricsSourceChosenNotification (object the track's id) once its lines are kept.
 void SGLyricsChooseSource(NSString *trackID, NSString *key);
